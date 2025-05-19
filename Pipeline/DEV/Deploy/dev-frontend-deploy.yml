@@ -1,0 +1,67 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: Build
+    displayName: 'Build Angular App'
+    jobs:
+      - job: BuildJob
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '18.x'
+            displayName: 'Install Node.js'
+
+          - script: |
+              npm install -g @angular/cli
+              npm install
+            workingDirectory: WEB/my-training-web-app
+            displayName: 'Install dependencies'
+
+          - script: |
+              ng build --configuration production
+            workingDirectory: WEB/my-training-web-app
+            displayName: 'Build Angular App'
+
+          - task: CopyFiles@2
+            inputs:
+              contents: 'WEB/my-training-web-app/dist/**'
+              targetFolder: '$(Build.ArtifactStagingDirectory)'
+            displayName: 'Copy files to staging'
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+              ArtifactName: 'angular-dist'
+            displayName: 'Publish Artifact'
+
+  - stage: Deploy
+    displayName: 'Deploy to Ubuntu Server'
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - job: DeployJob
+        steps:
+          - download: current
+            artifact: angular-dist
+
+          - task: CopyFilesOverSSH@0
+            inputs:
+              sshEndpoint: 'ubuntu-ssh'
+              sourceFolder: '$(Pipeline.Workspace)/angular-dist'
+              targetFolder: '/var/www/angular-app'
+              cleanTargetFolder: true
+              overwrite: true
+            displayName: 'Copy files to Ubuntu'
+
+          - task: SSH@0
+            inputs:
+              sshEndpoint: 'ubuntu-ssh'
+              runOptions: 'commands'
+              commands: |
+                echo "Restarting nginx..."
+                sudo systemctl restart nginx
+            displayName: 'Restart Nginx'
