@@ -1,0 +1,15 @@
+@SAService.API_HostAddress = http://localhost:5002
+
+GET {{SAService.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+
+POST {{SAService.API_HostAddress}}/api/systemlogin
+Content-Type: application/json
+
+{
+  //AppUser
+}
+
+###

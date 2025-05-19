@@ -1,0 +1,11 @@
+
+
+Create Migration
+---------------
+dotnet ef migrations add InitialCreate --project ProductService.Infrastructure --startup-project ProductService.API
+
+
+
+Update Database
+---------------
+dotnet ef database update   --project ProductService.InfraStructure   --startup-project ProductService.API

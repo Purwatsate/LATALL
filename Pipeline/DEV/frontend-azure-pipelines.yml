@@ -1,0 +1,38 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  buildConfiguration: 'production'
+  workingDir: 'WEB/my-training-web-app'
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '18.x'
+    displayName: 'Install Node.js'
+
+  - script: |
+      npm install -g @angular/cli
+      npm install
+    workingDirectory: $(workingDir)
+    displayName: 'Install dependencies'
+
+  - script: |
+      ng build --configuration $(buildConfiguration)
+    workingDirectory: $(workingDir)
+    displayName: 'Build Angular App'
+
+  - task: CopyFiles@2
+    inputs:
+      contents: '$(workingDir)/dist/**'
+      targetFolder: '$(Build.ArtifactStagingDirectory)'
+    displayName: 'Copy files to staging'
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      ArtifactName: 'angular-dist'
+    displayName: 'Publish Artifact'

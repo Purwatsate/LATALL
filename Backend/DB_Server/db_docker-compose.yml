@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  mongodb:
+    image: mongo
+    container_name: my-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ant
+      MONGO_INITDB_ROOT_PASSWORD: 1qaz!QAZ

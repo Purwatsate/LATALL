@@ -1,0 +1,11 @@
+
+
+Create Migration
+---------------
+dotnet ef migrations add InitialCreate --project SAService.Infrastructure --startup-project SAService.API
+
+
+
+Update Database
+---------------
+dotnet ef database update   --project SAService.InfraStructure   --startup-project SAService.API
