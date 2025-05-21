@@ -9,15 +9,20 @@ service Inventory {
 
 message StockRequest {
   string productId = 1;
+  double latitude = 2;
+  double longitude = 3;
 }
 
 message StockResponse {
   string productId = 1;
   int32 quantity = 2;
+  string warehouseID = 3;
 }
 
 message StockBatchRequest {
   repeated string productIds = 1;
+  double latitude = 2;
+  double longitude = 3;
 }
 
 message StockBatchResponse {

@@ -1,10 +1,11 @@
 ﻿
 using MongoDB.Driver;
+using ProductService.Contracts.Repository;
 using ProductService.Domain.Entities;
 
 namespace ProductService.InfraStructure.Repository
 {
-    public class CategoryRepository(IMongoDatabase db)
+    public class CategoryRepository(IMongoDatabase db) : ICategoryRepository
     {
         private readonly IMongoCollection<Category> _categoryCollection = db.GetCollection<Category>("Categories");
         List<Category> categories =

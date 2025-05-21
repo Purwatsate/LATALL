@@ -1,21 +1,41 @@
 ﻿using Grpc.Core;
+using InventoryService.Contracts.Repository;
+using InventoryService.Domain.Entities;
+using InventoryService.Domain.Utils;
 using InventoryService.Grpc;
-using InventoryService.InfraStructure.Data;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace InventoryService.Application.Services.gRPC
 {
-    public class InventoryServiceImpl(InventoryDbContext context, ILogger<InventoryServiceImpl> logger) : Inventory.InventoryBase
+    public class InventoryServiceImpl(
+        IStockRepository repo,
+        IWarehouseRepository warehouseRepository,
+        ILogger<InventoryServiceImpl> logger
+        ) : Inventory.InventoryBase
     {
-        private readonly InventoryDbContext _context = context;
+        private readonly IStockRepository _stockRepo = repo;
+        private readonly IWarehouseRepository _warehouseRepository = warehouseRepository;
         private readonly ILogger<InventoryServiceImpl> _logger = logger;
 
         public async override Task<StockResponse> GetStock(StockRequest request, ServerCallContext context)
         {
             _logger.LogInformation("--- GetStock GRPC {ProductId} ----", request.ProductId);
-            var stock = await _context.Stocks.FirstOrDefaultAsync(s => s.ProductId == request.ProductId);
-            var response = new StockResponse { ProductId = request.ProductId, Quantity = stock!.Quantity };
+            var warehoueList = (await _warehouseRepository.GetAllAsync()).ToList();
+
+            var nearestWarehouse = FindNearestWarehouse(request.Latitude, request.Longitude, warehoueList)
+                ?? throw new RpcException(new Status(StatusCode.NotFound, "No nearest warehouse found."));
+
+            var foundStock = await _stockRepo.GetByProductIdAndWarehouseIdAsync(request.ProductId, nearestWarehouse.Id)
+                ?? throw new RpcException(new Status(StatusCode.NotFound, $"Stock not found for ProductId: {request.ProductId}"));
+
+            //finally
+            var response = new StockResponse
+            {
+                ProductId = request.ProductId,
+                Quantity = foundStock.Quantity,
+                WarehouseID = nearestWarehouse.Id.ToString()
+            };
+            _logger.LogInformation("--- GetStock Finished {ProductId} ----", request.ProductId);
             return response;
         }
 
@@ -23,23 +43,47 @@ namespace InventoryService.Application.Services.gRPC
         {
             var response = new StockBatchResponse();
 
-            var productIds = request.ProductIds.ToList();
-            _logger.LogInformation("--- GetStockBatch GRPC with productIDs {ProductId} ---", productIds);
-            var stocks = await _context.Stocks
-                .Where(s => productIds.Contains(s.ProductId))
-                .ToListAsync();
+            _logger.LogInformation("--- GetStockBatch GRPC with productIDs {ProductId} ---", request.ProductIds);
+            var warehoueList = (await _warehouseRepository.GetAllAsync()).ToList();
 
-            foreach (var id in productIds)
+            var nearestWarehouse = FindNearestWarehouse(request.Latitude, request.Longitude, warehoueList) ?? throw new RpcException(new Status(StatusCode.NotFound, "No nearest warehouse found."));
+
+            foreach (var id in request.ProductIds)
             {
-                var stock = stocks.FirstOrDefault(s => s.ProductId == id);
+                var stockTask = await _stockRepo.GetByProductIdAndWarehouseIdAsync(id, nearestWarehouse.Id);
                 response.Stocks.Add(new StockResponse
                 {
                     ProductId = id,
-                    Quantity = stock?.Quantity ?? 0
+                    Quantity = stockTask?.Quantity ?? 0,
+                    WarehouseID = nearestWarehouse.Id.ToString()
                 });
             }
-
+            _logger.LogInformation("--- GetStockBatch Finished with productIDs {ProductId} ---", request.ProductIds);
             return response;
+        }
+
+        public Warehouse? FindNearestWarehouse(double customerLat, double customerLon, List<Warehouse> warehouses)
+        {
+            Warehouse? nearest = null;
+            double shortestDistance = double.MaxValue;
+
+            foreach (var warehouse in warehouses)
+            {
+                double distance = GeoUtils.CalculateDistanceKm(
+                    customerLat, customerLon,
+                    warehouse.Latitude, warehouse.Longitude
+                );
+
+                if (distance < shortestDistance)
+                {
+                    shortestDistance = distance;
+                    nearest = warehouse;
+                }
+            }
+
+            if (nearest == null)
+                _logger.LogInformation("--- FindNearestWarehouse NotFound  ---");
+            return nearest;
         }
 
 

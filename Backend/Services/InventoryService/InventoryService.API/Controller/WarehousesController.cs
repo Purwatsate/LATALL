@@ -1,39 +1,38 @@
-﻿using InventoryService.Domain.Entities;
-using InventoryService.InfraStructure.Data;
+﻿using InventoryService.Contracts.Repository;
+using InventoryService.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace InventoryService.API.Controller
 {
     [Route("[controller]")]
     [ApiController]
-    public class WarehousesController(InventoryDbContext context) : ControllerBase
+    public class WarehousesController(IWarehouseRepository repository) : ControllerBase
     {
-        private readonly InventoryDbContext _context = context;
+        private readonly IWarehouseRepository _repository = repository;
 
         // GET: api/Warehouses
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Warehouse>>> GetWarehouses()
         {
-            return await _context.Warehouses.ToListAsync();
+            var warehouses = await _repository.GetAllAsync();
+            return Ok(warehouses);
         }
 
         // GET: api/Warehouses/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Warehouse>> GetWarehouse(Guid id)
         {
-            var warehouse = await _context.Warehouses.FindAsync(id);
+            var warehouse = await _repository.GetByIdAsync(id);
 
             if (warehouse == null)
             {
                 return NotFound();
             }
 
-            return warehouse;
+            return Ok(warehouse);
         }
 
         // PUT: api/Warehouses/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutWarehouse(Guid id, Warehouse warehouse)
         {
@@ -42,57 +41,37 @@ namespace InventoryService.API.Controller
                 return BadRequest();
             }
 
-            _context.Entry(warehouse).State = EntityState.Modified;
+            if (!await _repository.ExistsAsync(id))
+            {
+                return NotFound();
+            }
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!WarehouseExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            await _repository.UpdateAsync(warehouse);
 
             return NoContent();
         }
 
         // POST: api/Warehouses
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<Warehouse>> PostWarehouse(Warehouse warehouse)
         {
-            _context.Warehouses.Add(warehouse);
-            await _context.SaveChangesAsync();
+            await _repository.AddAsync(warehouse);
 
-            return CreatedAtAction("GetWarehouse", new { id = warehouse.Id }, warehouse);
+            return CreatedAtAction(nameof(GetWarehouse), new { id = warehouse.Id }, warehouse);
         }
 
         // DELETE: api/Warehouses/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteWarehouse(Guid id)
         {
-            var warehouse = await _context.Warehouses.FindAsync(id);
-            if (warehouse == null)
+            if (!await _repository.ExistsAsync(id))
             {
                 return NotFound();
             }
 
-            _context.Warehouses.Remove(warehouse);
-            await _context.SaveChangesAsync();
+            await _repository.DeleteAsync(id);
 
             return NoContent();
-        }
-
-        private bool WarehouseExists(Guid id)
-        {
-            return _context.Warehouses.Any(e => e.Id == id);
         }
     }
 }
