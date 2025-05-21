@@ -13,7 +13,7 @@ namespace InventoryService.Application.Services.gRPC
 
         public async override Task<StockResponse> GetStock(StockRequest request, ServerCallContext context)
         {
-            _logger.LogInformation("GetStock GRPC {ProductId}", request.ProductId);
+            _logger.LogInformation("--- GetStock GRPC {ProductId} ----", request.ProductId);
             var stock = await _context.Stocks.FirstOrDefaultAsync(s => s.ProductId == request.ProductId);
             var response = new StockResponse { ProductId = request.ProductId, Quantity = stock!.Quantity };
             return response;
@@ -24,7 +24,7 @@ namespace InventoryService.Application.Services.gRPC
             var response = new StockBatchResponse();
 
             var productIds = request.ProductIds.ToList();
-            _logger.LogInformation("GetStockBatch GRPC with productIDs {ProductId}", productIds);
+            _logger.LogInformation("--- GetStockBatch GRPC with productIDs {ProductId} ---", productIds);
             var stocks = await _context.Stocks
                 .Where(s => productIds.Contains(s.ProductId))
                 .ToListAsync();

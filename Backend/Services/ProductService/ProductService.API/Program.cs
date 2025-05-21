@@ -1,3 +1,4 @@
+using InventoryService.Grpc;
 using LATALL.SharedKernel.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
@@ -24,6 +25,11 @@ builder.Services.AddScoped<IMongoDatabase>(sp =>
 });
 builder.Services.AddScoped<ProductRepository>();
 builder.Services.AddScoped<CategoryRepository>();
+
+builder.Services.AddGrpcClient<Inventory.InventoryClient>(o =>
+{
+    o.Address = new Uri("http://localhost:5004");
+});
 
 #region JWT_Config
 builder.Services.Configure<JwtSetting>(builder.Configuration.GetSection("JwtSettings"));

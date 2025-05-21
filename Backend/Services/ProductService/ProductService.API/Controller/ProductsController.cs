@@ -1,17 +1,24 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using InventoryService.Grpc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProductService.Application.DTOs;
 using ProductService.Domain.Entities;
 using ProductService.InfraStructure.Repository;
 using System.Security.Claims;
+using static InventoryService.Grpc.Inventory;
 
 namespace ProductService.API.Controller
 {
     [Route("[controller]")]
     [ApiController]
-    public class ProductsController(ProductRepository productRepo, ILogger<ProductsController> logger) : ControllerBase
+    public class ProductsController(
+        ProductRepository productRepo,
+        InventoryClient inventoryClient,
+        ILogger<ProductsController> logger) : ControllerBase
     {
         private readonly ILogger<ProductsController> _logger = logger;
         private readonly ProductRepository _productRepo = productRepo;
+        private readonly InventoryClient _inventoryClient = inventoryClient;
 
         [Authorize(Roles = "User")]
         [HttpGet]
@@ -35,7 +42,18 @@ namespace ProductService.API.Controller
         {
             var product = await _productRepo.GetByIdAsync(id);
             if (product == null) return NotFound();
-            return product;
+            var stockInfo = await _inventoryClient.GetStockAsync(new StockRequest { ProductId = id });
+            var ret = new ProductResponseDto
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Description = product.Description,
+                Price = product.Price,
+                DiscountPrice = product.DiscountPrice,
+                Sku = product.Sku,
+                Quantity = stockInfo.Quantity
+            };
+            return Ok(ret);
         }
 
         [Authorize(Roles = "Admin")]
