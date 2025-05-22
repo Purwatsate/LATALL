@@ -6,7 +6,15 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
-
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngularApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 builder.Services.AddAuthentication(
@@ -29,6 +37,7 @@ builder.Services.AddAuthentication(
     };
 });
 var app = builder.Build();
+app.UseCors("AllowAngularApp");
 builder.Services.AddAuthorization();
 app.UseAuthentication();
 app.UseAuthorization();
