@@ -1,39 +1,38 @@
-﻿using InventoryService.Domain.Entities;
-using InventoryService.InfraStructure.Data;
+﻿using InventoryService.Contracts.Repository;
+using InventoryService.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace InventoryService.API.Controller
 {
     [Route("[controller]")]
     [ApiController]
-    public class StocksController(InventoryDbContext context) : ControllerBase
+    public class StocksController(IStockRepository stockRepository) : ControllerBase
     {
-        private readonly InventoryDbContext _context = context;
+        private readonly IStockRepository _stockRepository = stockRepository;
 
-        // GET: api/Stocks
+        // GET: api/Stocks  
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Stock>>> GetStocks()
         {
-            return await _context.Stocks.ToListAsync();
+            var stocks = await _stockRepository.GetAllAsync();
+            return Ok(stocks);
         }
 
-        // GET: api/Stocks/5
+        // GET: api/Stocks/5  
         [HttpGet("{id}")]
         public async Task<ActionResult<Stock>> GetStock(Guid id)
         {
-            var stock = await _context.Stocks.FindAsync(id);
+            var stock = await _stockRepository.GetByIdAsync(id);
 
             if (stock == null)
             {
                 return NotFound();
             }
 
-            return stock;
+            return Ok(stock);
         }
 
-        // PUT: api/Stocks/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        // PUT: api/Stocks/5  
         [HttpPut("{id}")]
         public async Task<IActionResult> PutStock(Guid id, Stock stock)
         {
@@ -42,15 +41,13 @@ namespace InventoryService.API.Controller
                 return BadRequest();
             }
 
-            _context.Entry(stock).State = EntityState.Modified;
-
             try
             {
-                await _context.SaveChangesAsync();
+                await _stockRepository.UpdateAsync(stock);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception)
             {
-                if (!StockExists(id))
+                if (!await _stockRepository.ExistsAsync(id))
                 {
                     return NotFound();
                 }
@@ -63,36 +60,25 @@ namespace InventoryService.API.Controller
             return NoContent();
         }
 
-        // POST: api/Stocks
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        // POST: api/Stocks  
         [HttpPost]
         public async Task<ActionResult<Stock>> PostStock(Stock stock)
         {
-            _context.Stocks.Add(stock);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetStock", new { id = stock.Id }, stock);
+            await _stockRepository.AddAsync(stock);
+            return CreatedAtAction(nameof(GetStock), new { id = stock.Id }, stock);
         }
 
-        // DELETE: api/Stocks/5
+        // DELETE: api/Stocks/5  
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteStock(Guid id)
         {
-            var stock = await _context.Stocks.FindAsync(id);
-            if (stock == null)
+            if (!await _stockRepository.ExistsAsync(id))
             {
                 return NotFound();
             }
 
-            _context.Stocks.Remove(stock);
-            await _context.SaveChangesAsync();
-
+            await _stockRepository.DeleteAsync(id);
             return NoContent();
-        }
-
-        private bool StockExists(Guid id)
-        {
-            return _context.Stocks.Any(e => e.Id == id);
         }
     }
 }

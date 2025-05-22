@@ -3,6 +3,7 @@ using System;
 using InventoryService.InfraStructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace InventoryService.InfraStructure.Migrations
 {
     [DbContext(typeof(InventoryDbContext))]
-    partial class InventoryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250521134927_AddWarehousePosition")]
+    partial class AddWarehousePosition
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -173,14 +176,8 @@ namespace InventoryService.InfraStructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
-                    b.Property<double>("Latitude")
-                        .HasColumnType("double precision");
-
                     b.Property<string>("Location")
                         .HasColumnType("text");
-
-                    b.Property<double>("Longitude")
-                        .HasColumnType("double precision");
 
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("text");

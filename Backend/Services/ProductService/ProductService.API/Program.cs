@@ -1,8 +1,10 @@
+using InventoryService.Grpc;
 using LATALL.SharedKernel.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
+using ProductService.Contracts.Repository;
 using ProductService.InfraStructure.Repository;
 using ProductService.InfraStructure.Settings;
 using System.Text;
@@ -16,14 +18,20 @@ builder.Services.AddSingleton<IMongoClient, MongoClient>(sp =>
     var settings = sp.GetRequiredService<IOptions<MongoSettings>>().Value;
     return new MongoClient(settings.ConnectionString);
 });
+
 builder.Services.AddScoped<IMongoDatabase>(sp =>
 {
     var client = sp.GetRequiredService<IMongoClient>();
     var settings = sp.GetRequiredService<IOptions<MongoSettings>>().Value;
     return client.GetDatabase(settings.DatabaseName);
 });
-builder.Services.AddScoped<ProductRepository>();
-builder.Services.AddScoped<CategoryRepository>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+
+builder.Services.AddGrpcClient<Inventory.InventoryClient>(o =>
+{
+    o.Address = new Uri("http://localhost:5004");
+});
 
 #region JWT_Config
 builder.Services.Configure<JwtSetting>(builder.Configuration.GetSection("JwtSettings"));

@@ -3,11 +3,16 @@
   <ItemGroup>
     <ProjectReference Include="..\InventoryService.Domain\InventoryService.Domain.csproj" />
     <ProjectReference Include="..\InventoryService.Contracts\InventoryService.Contracts.csproj" />
+    <ProjectReference Include="..\InventoryService.InfraStructure\InventoryService.InfraStructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="DTOs\" />
     <Folder Include="Interfaces\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.Core.Api" Version="2.71.0" />
   </ItemGroup>
 
   <PropertyGroup>

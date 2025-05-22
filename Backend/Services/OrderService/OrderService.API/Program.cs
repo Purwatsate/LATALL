@@ -1,3 +1,4 @@
+using InventoryService.Grpc;
 using Microsoft.EntityFrameworkCore;
 using OrderService.InfraStructure.Data;
 
@@ -9,6 +10,10 @@ builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services.AddDbContext<OrderDbContext>(options =>
  options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddGrpcClient<Inventory.InventoryClient>(o =>
+{
+    o.Address = new Uri("http://localhost:5004");
+});
 
 var app = builder.Build();
 

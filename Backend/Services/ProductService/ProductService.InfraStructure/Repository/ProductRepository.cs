@@ -1,14 +1,25 @@
 ﻿using MongoDB.Driver;
+using ProductService.Contracts.Repository;
 using ProductService.Domain.Entities;
 
 namespace ProductService.InfraStructure.Repository
 {
-    public class ProductRepository(IMongoDatabase db)
+    public class ProductRepository(IMongoDatabase db) : IProductRepository
     {
         private readonly IMongoCollection<Product> _collection = db.GetCollection<Product>("Products");
 
-        public async Task<List<Product>> GetAllAsync() =>
-            await _collection.Find(_ => true).ToListAsync();
+        public async Task<List<Product>> GetAllAsync(int pageNumber = 1, int pageSize = 10)
+        {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 10;
+
+            return await _collection
+                .Find(_ => true)
+                .Skip((pageNumber - 1) * pageSize)
+                .Limit(pageSize)
+                .ToListAsync();
+        }
+
 
         public async Task<List<Product>> GetProductByCategory(string categoryId)
         {

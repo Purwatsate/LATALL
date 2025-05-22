@@ -1,24 +1,100 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using InventoryService.Grpc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProductService.Application.DTOs;
+using ProductService.Contracts.Repository;
 using ProductService.Domain.Entities;
-using ProductService.InfraStructure.Repository;
 using System.Security.Claims;
+using static InventoryService.Grpc.Inventory;
 
 namespace ProductService.API.Controller
 {
     [Route("[controller]")]
     [ApiController]
-    public class ProductsController(ProductRepository productRepo, ILogger<ProductsController> logger) : ControllerBase
+    public class ProductsController(
+        IProductRepository productRepo,
+        InventoryClient inventoryClient,
+        ILogger<ProductsController> logger) : ControllerBase
     {
         private readonly ILogger<ProductsController> _logger = logger;
-        private readonly ProductRepository _productRepo = productRepo;
+        private readonly IProductRepository _productRepo = productRepo;
+        private readonly InventoryClient _inventoryClient = inventoryClient;
 
         [Authorize(Roles = "User")]
         [HttpGet]
-        public async Task<ActionResult<List<Product>>> Get()
+        public async Task<ActionResult<List<ProductResponseDto>>> Get(
+            [FromQuery] double? latitude,
+            [FromQuery] double? longitude,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10
+            )
         {
-            //await _productRepo.InsertManyAsync();
-            return await _productRepo.GetAllAsync();
+            var allProduct = await _productRepo.GetAllAsync(pageNumber, pageSize);
+            if (allProduct.Count == 0)
+                return NotFound();
+
+            var productIds = allProduct
+                .Where(p => !string.IsNullOrEmpty(p.Id))
+                .Select(p => p.Id)
+                .ToList();
+
+            var stockInfos = await _inventoryClient.GetStockBatchAsync(new StockBatchRequest
+            {
+                ProductIds = { productIds },
+                Latitude = latitude ?? 0.0,
+                Longitude = longitude ?? 0.0
+            });
+
+            var stockInfoDict = stockInfos.Stocks.ToDictionary(s => s.ProductId);
+
+            List<ProductResponseDto> ret = [];
+            foreach (var p in allProduct)
+            {
+                stockInfoDict.TryGetValue(p.Id!, out var stockInfo);
+
+                var productDto = new ProductResponseDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    Price = p.Price,
+                    DiscountPrice = p.DiscountPrice,
+                    Sku = p.Sku,
+                    Quantity = stockInfo?.Quantity ?? 0,
+                    WarehouseId = stockInfo?.WarehouseID
+                };
+                ret.Add(productDto);
+            }
+            return ret;
+        }
+
+
+        [Authorize(Roles = "User")]
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ProductResponseDto>> Get(string id, [FromQuery] double? latitude, [FromQuery] double? longitude)
+        {
+            var product = await _productRepo.GetByIdAsync(id);
+            if (product == null) return NotFound();
+
+            var stockInfo = await _inventoryClient.GetStockAsync(new StockRequest
+            {
+                ProductId = id,
+                Latitude = latitude ?? 0.0,
+                Longitude = longitude ?? 0.0
+            });
+
+            var ret = new ProductResponseDto
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Description = product.Description,
+                Price = product.Price,
+                DiscountPrice = product.DiscountPrice,
+                Sku = product.Sku,
+                Quantity = stockInfo.Quantity,
+                WarehouseId = stockInfo.WarehouseID
+            };
+            return Ok(ret);
         }
 
         [Authorize(Roles = "User")]
@@ -26,16 +102,6 @@ namespace ProductService.API.Controller
         public async Task<ActionResult<List<Product>>> GetProductByCategory(string categoryId)
         {
             return await _productRepo.GetProductByCategory(categoryId);
-        }
-
-
-        [Authorize(Roles = "User")]
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Product>> Get(string id)
-        {
-            var product = await _productRepo.GetByIdAsync(id);
-            if (product == null) return NotFound();
-            return product;
         }
 
         [Authorize(Roles = "Admin")]
@@ -72,3 +138,10 @@ namespace ProductService.API.Controller
         }
     }
 }
+
+// Test to get nearest warehouse
+//| Warehouse Name | Latitude | Longitude |
+//| -------------------- | ----------- | ------------ |
+//| Central Warehouse   | 20.59177 | 93.19149 |
+//| Yangon Warehouse    | 16.8257 | 96.16242 |
+//| Mandalay Warehouse  | 21.95053 | 96.09058 |
