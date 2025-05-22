@@ -22,10 +22,9 @@ namespace InventoryService.Application.Services.gRPC
             _logger.LogInformation("--- GetStock GRPC {ProductId} ----", request.ProductId);
             var warehoueList = (await _warehouseRepository.GetAllAsync()).ToList();
 
-            var nearestWarehouse = FindNearestWarehouse(request.Latitude, request.Longitude, warehoueList)
-                ?? throw new RpcException(new Status(StatusCode.NotFound, "No nearest warehouse found."));
+            var nearestWarehouse = FindNearestWarehouse(request.Latitude, request.Longitude, warehoueList);
 
-            var foundStock = await _stockRepo.GetByProductIdAndWarehouseIdAsync(request.ProductId, nearestWarehouse.Id)
+            var foundStock = await _stockRepo.GetByProductIdAndWarehouseIdAsync(request.ProductId, nearestWarehouse?.Id)
                 ?? throw new RpcException(new Status(StatusCode.NotFound, $"Stock not found for ProductId: {request.ProductId}"));
 
             //finally
@@ -55,7 +54,7 @@ namespace InventoryService.Application.Services.gRPC
                 {
                     ProductId = id,
                     Quantity = stockTask?.Quantity ?? 0,
-                    WarehouseID = nearestWarehouse.Id.ToString()
+                    WarehouseID = stockTask?.WarehouseId.ToString()
                 });
             }
             _logger.LogInformation("--- GetStockBatch Finished with productIDs {ProductId} ---", request.ProductIds);

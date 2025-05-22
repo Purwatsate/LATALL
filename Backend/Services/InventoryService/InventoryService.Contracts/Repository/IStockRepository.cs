@@ -11,6 +11,6 @@ namespace InventoryService.Contracts.Repository
         Task UpdateAsync(Stock stock);
         Task DeleteAsync(Guid id);
         Task<bool> ExistsAsync(Guid id);
-        Task<Stock?> GetByProductIdAndWarehouseIdAsync(string productId, Guid warehouseId);
+        Task<Stock?> GetByProductIdAndWarehouseIdAsync(string productId, Guid? warehouseId);
     }
 }

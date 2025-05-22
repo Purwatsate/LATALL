@@ -46,16 +46,18 @@ namespace InventoryService.InfraStructure.Repository
             return await _context.Stocks.AnyAsync(e => e.Id == id);
         }
 
-        public async Task<Stock?> GetByProductIdAndWarehouseIdAsync(string productId, Guid warehouseId)
+        public async Task<Stock?> GetByProductIdAndWarehouseIdAsync(string productId, Guid? warehouseId)
         {
 
-            var foundStock = await _context.Stocks.FirstOrDefaultAsync(
+            if (warehouseId != null)
+            {
+                var foundStock = await _context.Stocks.FirstOrDefaultAsync(
                   s => s.ProductId == productId && s.WarehouseId == warehouseId
             );
-
-            if (foundStock != null)
-            {
-                return foundStock;
+                if (foundStock != null)
+                {
+                    return foundStock;
+                }
             }
 
             var stockWithoudWarehouseId = await _context.Stocks.FirstOrDefaultAsync(
