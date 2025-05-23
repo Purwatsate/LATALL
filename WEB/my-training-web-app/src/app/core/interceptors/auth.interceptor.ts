@@ -1,16 +1,19 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpHandlerFn, HttpRequest } from '@angular/common/http';
 import { AuthService } from '../services/auth/auth.service';
-import { inject } from '@angular/core';
+import { inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 
-export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const authService = inject(AuthService);
-  const authToken = authService.getToken();
-
-  if (authToken) {
-    const cloned = req.clone({
-      headers: req.headers.set('Authorization', `Bearer ${authToken}`),
-    });
-    return next(cloned);
+export function authInterceptor(
+  req: HttpRequest<unknown>,
+  next: HttpHandlerFn
+) {
+  if (req.url.endsWith('/Login')) {
+    return next(req);
   }
-  return next(req);
-};
+
+  const authToken = inject(AuthService).getToken();
+  const newReq = req.clone({
+    headers: req.headers.append('Authorization', `Bearer ${authToken}`),
+  });
+  return next(newReq);
+}

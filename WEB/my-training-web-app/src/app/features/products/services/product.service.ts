@@ -1,8 +1,9 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, of, tap } from 'rxjs';
 import { Product } from '../models/product.model';
 import { environment } from '../../../../environments/environment';
+import { TransferState, makeStateKey } from '@angular/core';
 
 @Injectable({
   providedIn: 'root',
@@ -10,6 +11,9 @@ import { environment } from '../../../../environments/environment';
 export class ProductService {
   private http = inject(HttpClient);
   private baseUrl = '';
+
+  PRODUCT_KEY = makeStateKey<any>('products');
+  private state = inject(TransferState);
 
   constructor() {
     this.baseUrl = environment.apiBaseUrl;
@@ -27,8 +31,16 @@ export class ProductService {
       pageNumber: pageNumber,
       pageSize: pageSize,
     };
-    return this.http.get<Product>(`${this.baseUrl}/product/Products`, {
-      params,
-    });
+
+    const saved = this.state.get(this.PRODUCT_KEY, null);
+    if (saved) {
+      return of(saved);
+    }
+
+    return this.http
+      .get<Product>(`${this.baseUrl}/product/Products`, {
+        params,
+      })
+      .pipe(tap((data) => this.state.set(this.PRODUCT_KEY, data)));
   }
 }

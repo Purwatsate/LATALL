@@ -1,0 +1,17 @@
+
+  .card-container {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1rem;
+
+    .item {
+      .example-card {
+        max-width: 400px;
+        .example-header-image {
+          background-image: url("https://material.angular.dev/assets/img/examples/shiba1.jpg");
+          background-size: cover;
+        }
+      }
+    }
+  }

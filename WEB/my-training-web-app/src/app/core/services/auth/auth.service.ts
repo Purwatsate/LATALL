@@ -1,8 +1,10 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { Router } from '@angular/router';
 import { catchError, Observable, tap, throwError } from 'rxjs';
 import { AuthResponse, Credentials } from '../../../shared/models/auth.model';
+import { environment } from '../../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -14,11 +16,16 @@ export class AuthService {
 
   private http = inject(HttpClient);
   private router = inject(Router);
+  private platformId = inject(PLATFORM_ID);
 
-  constructor() {}
+  private baseUrl = '';
+
+  constructor() {
+    this.baseUrl = environment.apiBaseUrl;
+  }
 
   login(credentials: Credentials): Observable<AuthResponse> {
-    const loginUrl = 'http://localhost:3000/api/login';
+    const loginUrl = `${this.baseUrl}/sa/SystemLogin/Login`;
 
     return this.http.post<AuthResponse>(loginUrl, credentials).pipe(
       tap((response) => {
@@ -32,6 +39,7 @@ export class AuthService {
         // Update authentication status
         // this._isAuthenticated.next(true);
         // this._currentUser.next(response.user || null);
+        this.router.navigate(['/product']);
         console.log('Login successful!');
       }),
       catchError(this.handleError)
@@ -39,12 +47,17 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    // return localStorage.getItem(this.TOKEN_KEY);
-    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiJlMWRjMTI5Yi0yMmEyLTQ5MDktYWQ3Zi04NWY3MjE1YTA1ZDMiLCJ1bmlxdWVfbmFtZSI6IlVzZXIgIDEiLCJyb2xlIjoiVXNlciIsIm5iZiI6MTc0NzkzMzg0MiwiZXhwIjoxNzQ3OTM1NjQyLCJpYXQiOjE3NDc5MzM4NDIsImlzcyI6IkxBVEFMTCIsImF1ZCI6IkxBVEFMTEFQSUNsaWVudCJ9.ydZ5CEI0YAfOe3ZtN5n0bJC90DyKnpT3Gn3ftopioaM';
+    if (isPlatformBrowser(this.platformId)) {
+      return localStorage.getItem(this.TOKEN_KEY);
+    }
+    return null;
   }
 
   getRefreshToken(): string | null {
-    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+    if (isPlatformBrowser(this.platformId)) {
+      return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+    }
+    return null;
   }
 
   hasToken(): boolean {
@@ -56,32 +69,46 @@ export class AuthService {
    * @returns The user object or null if not found.
    */
   getStoredUser(): any | null {
-    const userJson = localStorage.getItem(this.USER_KEY);
-    return userJson ? JSON.parse(userJson) : null;
+    if (isPlatformBrowser(this.platformId)) {
+      const userJson = localStorage.getItem(this.USER_KEY);
+      return userJson ? JSON.parse(userJson) : null;
+    }
+    return null;
   }
 
   private storeToken(token: string): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem(this.TOKEN_KEY, token);
+    }
   }
 
   private clearToken(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.removeItem(this.TOKEN_KEY);
+    }
   }
 
   private storeRefreshToken(token: string): void {
-    localStorage.setItem(this.REFRESH_TOKEN_KEY, token);
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem(this.REFRESH_TOKEN_KEY, token);
+    }
   }
 
   private clearRefreshToken(): void {
-    localStorage.removeItem(this.REFRESH_TOKEN_KEY);
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.removeItem(this.REFRESH_TOKEN_KEY);
+    }
   }
 
   private storeUser(user: any): void {
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    }
   }
 
   private clearUser(): void {
-    localStorage.removeItem(this.USER_KEY);
+    if (isPlatformBrowser(this.platformId))
+      localStorage.removeItem(this.USER_KEY);
   }
 
   private handleError(error: HttpErrorResponse): Observable<never> {
