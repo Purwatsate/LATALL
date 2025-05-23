@@ -1,0 +1,34 @@
+<div>
+  <form [formGroup]="loginForm">
+    <div class="login-container">
+      <!-- UserName -->
+      <mat-form-field
+        [hideRequiredMarker]="hideRequired()"
+        [floatLabel]="floatLabel()"
+      >
+        <input
+          matInput
+          placeholder="User Name"
+          required
+          formControlName="username"
+        />
+      </mat-form-field>
+
+      <!-- Password -->
+      <mat-form-field
+        [hideRequiredMarker]="hideRequired()"
+        [floatLabel]="floatLabel()"
+      >
+        <input
+          matInput
+          placeholder="Password"
+          required
+          formControlName="password"
+        />
+      </mat-form-field>
+
+      <!-- Login Button -->
+      <button mat-flat-button (click)="onLoginClick()">Login</button>
+    </div>
+  </form>
+</div>
